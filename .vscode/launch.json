@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "启动 Web 服务器 (推荐)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/server.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PATH": "C:\\msys64\\ucrt64\\bin;${env:PATH}"
+            }
+        },
+        {
+            "name": "运行 CF 爬虫",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/deploy/bin/cf_crawler.exe",
+            "args": ["${workspaceFolder}/deploy/sample_users.txt"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/deploy"
+        }
+    ]
+}

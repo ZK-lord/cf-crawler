@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<script src="https://registry.npmmirror.com/echarts/5.5.0/files/dist/echarts.min.js">
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+       background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+a { color: inherit; text-decoration: none; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+/* Header */
+.header { background: linear-gradient(135deg, #ffffff, #f0f0ff); border-radius: 12px;
+           padding: 30px; margin-bottom: 24px; display: flex; align-items: center; gap: 24px;
+           box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
+.header .avatar { width: 80px; height: 80px; border-radius: 50%; border: 3px solid #e0e0e0; }
+.header .info { flex: 1; }
+.header .handle { font-size: 28px; font-weight: 700; }
+.header .rating-text { font-size: 18px; margin-top: 4px; color: #444; }
+.header .rank-text { font-size: 14px; color: #888; margin-top: 2px; }
+
+/* Stats cards */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+         gap: 16px; margin-bottom: 24px; }
+.stat-card { background: #ffffff; border-radius: 10px; padding: 20px; text-align: center;
+             box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.stat-card .value { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+.stat-card .label { font-size: 13px; color: #999; margin-top: 6px; }
+
+/* Chart containers */
+.chart-box { background: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 24px;
+             box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.chart-box h2 { font-size: 18px; margin-bottom: 16px; color: #1a1a2e; }
+.chart { width: 100%; height: 400px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.tab-btn { padding: 6px 16px; border: 1px solid #ddd; border-radius: 6px; background: #f8f8f8;
+           color: #666; cursor: pointer; font-size: 13px; }
+.tab-btn.active { background: #4a4aff; color: #fff; border-color: #4a4aff; }
+.tab-btn:hover { background: #eee; }
+
+/* Contest table */
+.table-wrap { overflow-x: auto; }
+table.contests { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.contests th { background: #f8f9fb; color: #666; padding: 10px 8px; text-align: left;
+                    font-weight: 600; white-space: nowrap; position: sticky; top: 0;
+                    border-bottom: 2px solid #eee; }
+table.contests td { padding: 8px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+table.contests tr:hover td { background: #f5f5ff; }
+
+.problem-dots { display: flex; gap: 4px; flex-wrap: wrap; }
+.problem-dot { display: inline-block; width: 22px; height: 22px; border-radius: 4px;
+               text-align: center; line-height: 22px; font-size: 10px; font-weight: 700; }
+.problem-dot.solved { background: #e8f5e9; color: #2e7d32; }
+.problem-dot.failed { background: #fce4ec; color: #c62828; }
+.problem-dot.upsolved { background: #fff8e1; color: #f57f17; }
+
+/* Back link */
+.back-link { display: inline-block; margin-bottom: 16px; color: #4a4aff; font-size: 14px; }
+.back-link:hover { text-decoration: underline; }
+
+/* Search */
+.search-box { position: relative; margin-bottom: 16px; }
+.search-box input { width: 100%; padding: 12px 16px 12px 40px; border: 1px solid #ddd;
+                    border-radius: 8px; font-size: 14px; outline: none;
+                    transition: border-color 0.2s, box-shadow 0.2s; background: #fff; }
+.search-box input:focus { border-color: #4a4aff; box-shadow: 0 0 0 3px rgba(74,74,255,0.12); }
+.search-box .icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+                     color: #bbb; font-size: 16px; pointer-events: none; }
+.search-box .clear-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+                          background: none; border: none; color: #bbb; font-size: 18px;
+                          cursor: pointer; padding: 4px 8px; display: none; }
+.search-box .clear-btn:hover { color: #666; }
+
+/* Multi-user index */
+.user-list { background: #ffffff; border-radius: 12px; overflow: hidden;
+             box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+.user-list table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.user-list th { background: #f8f9fb; color: #666; padding: 12px 10px; text-align: left;
+                font-weight: 600; white-space: nowrap; border-bottom: 2px solid #eee; }
+.user-list td { padding: 10px; border-bottom: 1px solid #f0f0f0; }
+.user-list tr:hover td { background: #f5f5ff; }
+.user-list .miniavatar { width: 32px; height: 32px; border-radius: 50%; vertical-align: middle; margin-right: 8px; }
+.user-list .handle-link:hover { text-decoration: underline; }
+
+.title { font-size: 24px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+.subtitle { font-size: 14px; color: #888; margin-bottom: 24px; }
+
+@media (max-width: 768px) {
+  .header { flex-direction: column; text-align: center; }
+  .stats { grid-template-columns: repeat(2, 1fr); }
+  .chart { height: 300px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+<div id="app"></div>
+</div>
+
+<script>
+const CF_DATA = {{DATA_JSON}};
+
+function ratingColor(rating) {
+  if (rating >= 3000) return '#000000';
+  if (rating >= 2600) return '#CC0000';
+  if (rating >= 2400) return '#FF0000';
+  if (rating >= 2300) return '#FF8C00';
+  if (rating >= 2100) return '#FF8C00';
+  if (rating >= 1900) return '#AA00AA';
+  if (rating >= 1600) return '#5699FF';
+  if (rating >= 1400) return '#03A89E';
+  if (rating >= 1200) return '#008000';
+  return '#808080';
+}
+
+function ratingTitle(rating) {
+  if (rating >= 3000) return 'Legendary Grandmaster';
+  if (rating >= 2600) return 'International Grandmaster';
+  if (rating >= 2400) return 'Grandmaster';
+  if (rating >= 2300) return 'International Master';
+  if (rating >= 2100) return 'Master';
+  if (rating >= 1900) return 'Candidate Master';
+  if (rating >= 1600) return 'Expert';
+  if (rating >= 1400) return 'Specialist';
+  if (rating >= 1200) return 'Pupil';
+  return 'Newbie';
+}
+
+function formatDate(ts) {
+  const d = new Date(ts * 1000);
+  return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+/* ====== 动态添加用户 (localStorage) ====== */
+const LS_KEY = 'cf_added_users';
+
+function loadAddedUsers() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch(e) { return []; }
+}
+
+function saveAddedUsers(list) {
+  localStorage.setItem(LS_KEY, JSON.stringify(list));
+}
+
+function removeAddedUser(handle) {
+  let list = loadAddedUsers();
+  list = list.filter(function(u) { return u.handle !== handle; });
+  saveAddedUsers(list);
+  renderIndex(CF_DATA);
+}
+
+function addUserByHandle() {
+  const input = document.getElementById('addHandleInput');
+  const btn = document.getElementById('addHandleBtn');
+  const msg = document.getElementById('addUserMsg');
+  const handle = input.value.trim();
+  if (!handle) return;
+
+  msg.innerHTML = '正在抓取 ' + handle + ' 的完整数据...';
+  msg.style.color = '#888';
+  btn.disabled = true;
+
+  // 先试试本地 API 服务器 (能拿完整数据)
+  fetch('/api/add-user', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'handle=' + encodeURIComponent(handle)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(resp) {
+    if (resp.ok) {
+      msg.innerHTML = resp.message + '，正在刷新...';
+      msg.style.color = '#2e7d32';
+      setTimeout(function() { location.reload(); }, 1000);
+    } else {
+      throw new Error(resp.error || '添加失败');
+    }
+  })
+  .catch(function(err) {
+    // 本地服务器不可用，降级到基本查询 (仅显示基本信息)
+    console.log('本地服务器不可用，使用 CF API 直接查询:', err.message);
+    fallbackAddUser(handle, msg, btn, input);
+  })
+  .finally(function() { btn.disabled = false; });
+}
+
+/* 降级方案：直接用 CF API 查基本信息和评分解说 */
+function fallbackAddUser(handle, msg, btn, input) {
+  fetch('https://codeforces.com/api/user.info?handles=' + encodeURIComponent(handle))
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+      if (resp.status !== 'OK' || !resp.result || resp.result.length === 0) {
+        msg.innerHTML = '未找到用户 "' + handle + '"';
+        msg.style.color = '#c62828';
+        return;
+      }
+      var u = resp.result[0];
+      var entry = {
+        handle: u.handle,
+        rating: u.rating || 0,
+        maxRating: u.maxRating || 0,
+        rank: u.rank || 'Unrated',
+        maxRank: u.maxRank || 'Unrated',
+        titlePhoto: u.titlePhoto || u.avatar || ''
+      };
+      var list = loadAddedUsers();
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].handle.toLowerCase() === entry.handle.toLowerCase()) {
+          msg.innerHTML = '用户 "' + entry.handle + '" 已在列表中';
+          msg.style.color = '#f57f17';
+          return;
+        }
+      }
+      list.push(entry);
+      saveAddedUsers(list);
+      msg.innerHTML = '已添加: ' + entry.handle + ' (仅基本信息，启动 server.py 可获取完整数据)';
+      msg.style.color = '#2e7d32';
+      input.value = '';
+      renderIndex(CF_DATA);
+    })
+    .catch(function(err) {
+      msg.innerHTML = '查询失败: ' + err.message;
+      msg.style.color = '#c62828';
+    });
+}
+
+function renderAddedUsers() {
+  const added = loadAddedUsers();
+  if (added.length === 0) return '';
+  var html = '<div style="margin-top:24px;margin-bottom:8px;font-size:16px;font-weight:600;color:#1a1a2e;">' +
+    '动态添加的用户</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
+  added.forEach(function(u) {
+    var c = ratingColor(u.rating);
+    html += '<div style="background:#fff;border-radius:10px;padding:16px;display:flex;align-items:center;gap:14px;' +
+      'box-shadow:0 2px 8px rgba(0,0,0,0.04);transition:box-shadow 0.2s;"' +
+      ' onmouseover="this.style.boxShadow=\'0 4px 16px rgba(0,0,0,0.1)\'"' +
+      ' onmouseout="this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.04)\'">' +
+      '<img src="' + u.titlePhoto + '" style="width:48px;height:48px;border-radius:50%;border:2px solid ' + c + '"' +
+      ' onerror="this.style.display=\'none\'">' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-weight:700;color:' + c + ';font-size:15px;">' + u.handle + '</div>' +
+      '<div style="font-size:12px;color:#888;">' + (u.rank || 'Unrated') +
+      ' &middot; ' + u.rating + '</div></div>' +
+      '<button onclick="removeAddedUser(\'' + u.handle + '\')" style="background:#fce4ec;border:none;border-radius:6px;' +
+      'padding:6px 12px;color:#c62828;font-size:12px;cursor:pointer;">删除</button></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+/* ====== Multi-user index ====== */
+function renderIndex(users) {
+  const app = document.getElementById('app');
+  let html = '<div class="title">Codeforces Analytics</div>';
+  html += '<div class="subtitle">共 ' + users.length + ' 位用户 &middot; 在下方搜索特定用户</div>';
+  html += '<div class="search-box">' +
+    '<span class="icon">&#128269;</span>' +
+    '<input type="text" id="searchInput" placeholder="搜索用户..." oninput="filterUsers(this.value)" autocomplete="off">' +
+    '<button class="clear-btn" onclick="clearSearch()">&#10005;</button>' +
+    '</div>';
+
+  /* 添加用户输入框 */
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">' +
+    '<input type="text" id="addHandleInput" placeholder="输入 CF 用户名添加..."' +
+    ' style="flex:1;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;"' +
+    ' onkeydown="if(event.key===\'Enter\')addUserByHandle()"' +
+    ' onfocus="this.style.borderColor=\'#4a4aff\'" onblur="this.style.borderColor=\'#ddd\'">' +
+    '<button id="addHandleBtn" onclick="addUserByHandle()" style="padding:10px 20px;background:#4a4aff;color:#fff;' +
+    'border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:600;white-space:nowrap;">添加</button>' +
+    '</div>' +
+    '<div id="addUserMsg" style="font-size:13px;margin-bottom:12px;min-height:18px;"></div>';
+
+  html += '<div class="user-list"><table><thead><tr>' +
+    '<th>用户</th><th>等级分</th><th>头衔</th><th>比赛次数</th><th>最高等级分</th>' +
+    '<th>近180天比赛</th><th>近180天最高</th></tr></thead>' +
+    '<tbody id="user-tbody">';
+  users.forEach(function(u) {
+    const c = ratingColor(u.rating);
+    html += '<tr data-handle="' + u.handle.toLowerCase() + '"><td><img class="miniavatar" src="' + u.titlePhoto + '" onerror="this.style.display=\'none\'">' +
+      '<a class="handle-link" href="report_' + encodeURIComponent(u.handle) + '.html" style="color:' + c + ';font-weight:700">' +
+      u.handle + '</a></td>';
+    html += '<td style="color:' + c + ';font-weight:600">' + u.rating + '</td>';
+    html += '<td>' + (u.rank || 'Unrated') + '</td>';
+    html += '<td>' + (u.contestCount || 0) + '</td>';
+    html += '<td style="color:' + ratingColor(u.maxRating) + '">' + (u.maxRating || 0) + '</td>';
+    html += '<td>' + (u.contestCount180 || 0) + '</td>';
+    html += '<td style="color:' + ratingColor(u.maxRating180) + '">' + (u.maxRating180 || 0) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += renderAddedUsers();
+  html += '<div id="no-result" style="display:none;text-align:center;padding:60px 0;color:#999">' +
+    '没有找到匹配的用户</div>';
+  app.innerHTML = html;
+}
+
+/* Realtime search filter */
+function filterUsers(query) {
+  const q = query.toLowerCase().trim();
+  const tbody = document.getElementById('user-tbody');
+  const noResult = document.getElementById('no-result');
+  const rows = tbody.querySelectorAll('tr');
+  let visible = 0;
+  rows.forEach(function(row) {
+    const match = row.dataset.handle.indexOf(q) !== -1;
+    row.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  noResult.style.display = visible === 0 ? 'block' : 'none';
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  filterUsers('');
+}
+
+/* ====== Single user detail ====== */
+function renderDetail(u) {
+  const app = document.getElementById('app');
+  let html = '<a class="back-link" href="index.html">&larr; 返回用户列表</a>';
+
+  /* Header */
+  const c = ratingColor(u.rating);
+  html += '<div class="header">' +
+    '<img class="avatar" src="' + u.titlePhoto + '" alt="avatar" onerror="this.style.display=\'none\'">' +
+    '<div class="info">' +
+    '<div class="handle" style="color:' + c + '">' + u.handle + '</div>' +
+    '<div class="rating-text">等级分: <span style="color:' + c + ';font-weight:700">' +
+    u.rating + '</span> (最高: <span style="color:' + ratingColor(u.maxRating) + '">' +
+    u.maxRating + '</span>)</div>' +
+    '<div class="rank-text">头衔: ' + (u.rank || 'Unrated') +
+    ' &middot; 最高头衔: ' + (u.maxRank || 'Unrated') + '</div>' +
+    '</div></div>';
+
+  /* Stats */
+  html += '<div class="stats">' +
+    '<div class="stat-card"><div class="value">' + (u.contestCount || 0) +
+    '</div><div class="label">比赛次数</div></div>' +
+    '<div class="stat-card"><div class="value" style="color:' + ratingColor(u.maxRating) + '">' +
+    (u.maxRating || 0) + '</div><div class="label">最高等级分</div></div>' +
+    '<div class="stat-card"><div class="value">' + (u.contestCount180 || 0) +
+    '</div><div class="label">近180天比赛</div></div>' +
+    '<div class="stat-card"><div class="value" style="color:' + ratingColor(u.maxRating180) + '">' +
+    (u.maxRating180 || 0) + '</div><div class="label">近180天最高</div></div>' +
+    '</div>';
+
+  /* Rating history chart */
+  html += '<div class="chart-box"><h2>等级分变化</h2><div id="ratingChart" class="chart"></div></div>';
+
+  /* AC histogram */
+  html += '<div class="chart-box"><h2>通过题目等级分分布</h2>' +
+    '<div class="tabs">' +
+    '<button class="tab-btn active" onclick="switchHist(this,\'all\')">全部</button>' +
+    '<button class="tab-btn" onclick="switchHist(this,\'year\')">近一年</button>' +
+    '<button class="tab-btn" onclick="switchHist(this,\'180\')">近180天</button>' +
+    '<button class="tab-btn" onclick="switchHist(this,\'month\')">近一个月</button>' +
+    '</div><div id="histChart" class="chart"></div></div>';
+
+  /* Contest table */
+  html += '<div class="chart-box"><h2>比赛记录</h2>' +
+    '<div style="margin-bottom:12px;">' +
+    '<input type="text" id="contestSearch" placeholder="搜索比赛名称..."' +
+    ' style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;"' +
+    ' oninput="filterContests(this.value)"' +
+    ' onfocus="this.style.borderColor=\'#4a4aff\'" onblur="this.style.borderColor=\'#ddd\'">' +
+    '</div>' +
+    '<div class="table-wrap"><table class="contests"><thead><tr>' +
+    '<th>赛事名称</th><th>日期</th><th>赛前</th><th>赛后</th><th>排名</th>' +
+    '<th>通过</th><th>各题状态</th><th>补题</th></tr></thead>' +
+    '<tbody id="contest-tbody">';
+
+  if (u.contests && u.contests.length > 0) {
+    var contests = u.contests.slice().reverse();
+    contests.forEach(function(c) {
+      var dateStr = formatDate(c.startTime || c.timestamp);
+      var rankStr = c.rank > 0 ? c.rank : '-';
+      var delta = c.newRating - c.oldRating;
+      var deltaStr = delta > 0 ? '<span style="color:#2e7d32">+' + delta + '</span>' :
+                     delta < 0 ? '<span style="color:#c62828">' + delta + '</span>' : '0';
+
+      html += '<tr data-name="' + c.contestName.toLowerCase() + '"><td><a href="https://codeforces.com/contest/' + c.contestId + '" target="_blank" style="color:#4a4aff">' +
+        c.contestName + '</a></td>';
+      html += '<td>' + dateStr + '</td>';
+      html += '<td style="color:' + c.oldRatingColor + '">' + c.oldRating + '</td>';
+      html += '<td style="color:' + c.newRatingColor + '">' + c.newRating + ' ' + deltaStr + '</td>';
+      html += '<td>' + rankStr + '</td>';
+      html += '<td>' + (c.solvedCount || 0) + '</td>';
+
+      /* Problem scores */
+      html += '<td><div class="problem-dots">';
+      if (c.problems && c.problems.length > 0) {
+        c.problems.forEach(function(p) {
+          var cls = 'failed';
+          if (p.verdict === 'OK') cls = 'solved';
+          html += '<span class="problem-dot ' + cls + '" title="' + p.index + ': ' +
+            (p.verdict === 'OK' ? '通过' : '未通过') + '">' + p.index + '</span>';
+        });
+      }
+      html += '</div></td>';
+
+      /* Upsolved */
+      html += '<td><div class="problem-dots">';
+      if (c.upsolved && c.upsolved.length > 0) {
+        c.upsolved.forEach(function(u2) {
+          html += '<span class="problem-dot upsolved" title="赛后补题 ' + u2.index + '">' +
+            u2.index + '</span>';
+        });
+      }
+      html += '</div></td></tr>';
+    });
+  }
+
+  html += '</tbody></table></div></div>';
+  app.innerHTML = html;
+
+  drawRatingChart(u);
+  drawHistChart(u, 'all');
+}
+
+/* ====== Rating line chart ====== */
+function drawRatingChart(u) {
+  var chart = echarts.init(document.getElementById('ratingChart'));
+  if (!u.contests || u.contests.length === 0) {
+    chart.setOption({ title: { text: '暂无数据', textStyle: { color: '#999' } } });
+    return;
+  }
+  var data = u.contests;
+  var dates = data.map(function(d) { return formatDate(d.startTime || d.timestamp); });
+  var ratings = data.map(function(d) { return d.newRating; });
+  var colors = data.map(function(d) { return d.newRatingColor; });
+
+  var option = {
+    backgroundColor: '#ffffff',
+    tooltip: { trigger: 'axis', formatter: function(params) {
+      var p = params[0];
+      var idx = p.dataIndex;
+      var d = data[idx];
+      return d.contestName + '<br/>日期: ' + formatDate(d.startTime || d.timestamp) +
+        '<br/>等级分: ' + d.oldRating + ' → <b>' + d.newRating + '</b>' +
+        '<br/>排名: ' + (d.rank || '-');
+    }},
+    grid: { left: 60, right: 20, bottom: 40, top: 20 },
+    xAxis: { type: 'category', data: dates, axisLabel: { color: '#999', rotate: 45, fontSize: 10 } },
+    yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } },
+             axisLabel: { color: '#999' } },
+    series: [{
+      type: 'line', data: ratings, smooth: true,
+      lineStyle: { width: 2, color: '#4a4aff' },
+      areaStyle: { color: 'rgba(74,74,255,0.08)' },
+      symbol: 'circle', symbolSize: 6,
+      itemStyle: { color: function(p) { return colors[p.dataIndex]; } }
+    }]
+  };
+  chart.setOption(option);
+  window.addEventListener('resize', function() { chart.resize(); });
+}
+
+/* ====== AC histogram with rating zones ====== */
+function switchHist(btn, period) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  drawHistChart(CF_DATA, period);
+}
+
+/* CF rating background zones */
+const RATING_ZONES = [
+  { min: 0,    max: 1200, color: 'rgba(128,128,128,0.08)', label: 'Newbie' },
+  { min: 1200, max: 1400, color: 'rgba(0,128,0,0.08)',    label: 'Pupil' },
+  { min: 1400, max: 1600, color: 'rgba(3,168,158,0.08)',  label: 'Specialist' },
+  { min: 1600, max: 1900, color: 'rgba(0,0,255,0.08)',    label: 'Expert' },
+  { min: 1900, max: 2100, color: 'rgba(170,0,170,0.08)',  label: 'Candidate' },
+  { min: 2100, max: 2400, color: 'rgba(255,140,0,0.08)',  label: 'Master' },
+  { min: 2400, max: 3000, color: 'rgba(255,0,0,0.08)',    label: 'Grandmaster' },
+  { min: 3000, max: 5000, color: 'rgba(0,0,0,0.08)',      label: 'LGM' },
+];
+
+function drawHistChart(u, period) {
+  var chart = echarts.init(document.getElementById('histChart'));
+  var histData = null;
+  switch(period) {
+    case 'all': histData = u.histAll; break;
+    case 'year': histData = u.histYear; break;
+    case '180': histData = u.hist180; break;
+    case 'month': histData = u.histMonth; break;
+  }
+  if (!histData) histData = {};
+
+  var keys = Object.keys(histData).sort(function(a,b) { return parseInt(a) - parseInt(b); });
+  var values = keys.map(function(k) { return histData[k]; });
+  var total = values.reduce(function(a,b) { return a+b; }, 0);
+
+  /* Show placeholder if no data */
+  if (keys.length === 0 || total === 0) {
+    chart.setOption({
+      backgroundColor: '#ffffff',
+      title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 16 } }
+    });
+    return;
+  }
+
+  /* Cumulative percentage line */
+  var cumSum = 0;
+  var cumPct = values.map(function(v) { cumSum += v; return +(cumSum / total * 100).toFixed(1); });
+
+  /* Background color zones matching actual data categories */
+  var markAreas = [];
+  RATING_ZONES.forEach(function(zone) {
+    var firstIdx = -1, lastIdx = -1;
+    for (var i = 0; i < keys.length; i++) {
+      var k = parseInt(keys[i]);
+      if (k >= zone.min && k < zone.max) {
+        if (firstIdx === -1) firstIdx = i;
+        lastIdx = i;
+      }
+    }
+    if (firstIdx !== -1 && lastIdx !== -1) {
+      markAreas.push([
+        { xAxis: keys[firstIdx], itemStyle: { color: zone.color }, label: { show: false } },
+        { xAxis: keys[lastIdx] }
+      ]);
+    }
+  });
+
+  var option = {
+    backgroundColor: '#ffffff',
+    tooltip: {
+      trigger: 'axis',
+      formatter: function(params) {
+        var idx = params[0].dataIndex;
+        var key = keys[idx];
+        var val = values[idx];
+        var pct = total > 0 ? (val / total * 100).toFixed(1) : '0.0';
+        var zoneLabel = '';
+        var num = parseInt(key);
+        for (var z = RATING_ZONES.length - 1; z >= 0; z--) {
+          if (num >= RATING_ZONES[z].min) { zoneLabel = RATING_ZONES[z].label; break; }
+        }
+        return '<b>等级分 ' + key + '</b> (' + zoneLabel + ' 区间)<br/>' +
+          '通过: ' + val + ' 题 (' + pct + '%)<br/>累计占比: ' + cumPct[idx] + '%';
+      }
+    },
+    grid: { left: 55, right: 60, bottom: 45, top: 20 },
+    xAxis: {
+      type: 'category', data: keys,
+      axisLabel: { color: '#999', fontSize: 10 },
+      name: '题目等级分', nameTextStyle: { color: '#999', fontSize: 11 }
+    },
+    yAxis: [
+      { type: 'value', name: '通过数量', nameTextStyle: { color: '#999', fontSize: 11 },
+        splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
+        axisLabel: { color: '#999' } },
+      { type: 'value', name: '累计 %', min: 0, max: 100,
+        nameTextStyle: { color: '#999', fontSize: 11 },
+        splitLine: { show: false },
+        axisLabel: { color: '#999', formatter: '{value}%' } }
+    ],
+    series: [
+      {
+        name: '通过数量', type: 'bar', data: values, yAxisIndex: 0,
+        itemStyle: {
+          color: function(p) { return ratingColor(parseInt(keys[p.dataIndex])); },
+          borderRadius: [4,4,0,0], shadowBlur: 2, shadowColor: 'rgba(0,0,0,0.06)'
+        },
+        barMaxWidth: 40,
+        markArea: { silent: true, data: markAreas }
+      },
+      {
+        name: '累计占比', type: 'line', data: cumPct, yAxisIndex: 1,
+        smooth: true, symbol: 'diamond', symbolSize: 6,
+        lineStyle: { width: 2, color: '#e94560' },
+        itemStyle: { color: '#e94560' },
+        label: { show: true, position: 'top', formatter: function(p) { return p.value + '%'; },
+                 color: '#e94560', fontSize: 9 }
+      }
+    ]
+  };
+  chart.setOption(option);
+  window.addEventListener('resize', function() { chart.resize(); });
+}
+
+if (Array.isArray(CF_DATA)) {
+  renderIndex(CF_DATA);
+} else if (CF_DATA && typeof CF_DATA === 'object') {
+  renderDetail(CF_DATA);
+} else {
+  document.getElementById('app').innerHTML = '<div style="text-align:center;padding:100px 0;color:#999">' +
+    '<div style="font-size:48px;margin-bottom:16px">:(</div>' +
+    '<div>没有数据</div></div>';
+}
+
+function filterContests(query) {
+  var q = query.toLowerCase().trim();
+  var tbody = document.getElementById('contest-tbody');
+  if (!tbody) return;
+  var rows = tbody.querySelectorAll('tr');
+  for (var i = 0; i < rows.length; i++) {
+    var match = rows[i].dataset.name.indexOf(q) !== -1;
+    rows[i].style.display = match ? '' : 'none';
+  }
+}
+
+</script>
+</body>
+</html>
