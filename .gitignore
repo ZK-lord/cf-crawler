@@ -1,9 +1,6 @@
-# 编译产物
-*.exe
-*.o
-
-# 根目录 bin 下的 DLL（编译时从 deploy 复制，不纳入版本管理）
-bin/*.dll
+# 编译产物（仅排除根目录 bin 下的中间文件，保留 deploy/bin 中的交付产物）
+bin/*
+src/*.o
 
 # 缓存和生成文件
 data/

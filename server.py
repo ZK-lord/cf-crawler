@@ -92,8 +92,11 @@ class AddUserHandler(SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     os.chdir(BASE)
     server = HTTPServer(('127.0.0.1', PORT), AddUserHandler)
-    print(f'启动成功！请访问 http://127.0.0.1:{PORT}')
+    url = f'http://127.0.0.1:{PORT}'
+    print(f'启动成功！请访问 {url}')
     print(f'在页面输入 CF 用户名后点击"添加"，服务器会自动抓取完整数据')
+    import webbrowser
+    webbrowser.open(url)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
