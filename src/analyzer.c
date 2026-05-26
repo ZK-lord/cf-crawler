@@ -308,10 +308,9 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
     /* 修正 API 头衔数据 */
     adjust_rating_rank(user_info);
 
-    /* ═══════════════════════════════════════════
-     * 第一部分：基本信息
-     * ═══════════════════════════════════════════ */
+    /* ——— 第一部分：提取基本信息 ——— */
 
+    /* 用户名和头像 */
     cJSON *cf_handle = cJSON_GetObjectItem(user_info, "handle");
     cJSON_AddStringToObject(result, "handle",
         cf_handle && cf_handle->valuestring ? cf_handle->valuestring : handle);
@@ -324,6 +323,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
     cJSON_AddStringToObject(result, "titlePhoto",
         titlePhoto && titlePhoto->valuestring ? titlePhoto->valuestring : "");
 
+    /* rating 和最高分 */
     int rating = 0, maxRating = 0;
     cJSON *r = cJSON_GetObjectItem(user_info, "rating");
     if (r && cJSON_IsNumber(r)) rating = r->valueint;
@@ -334,6 +334,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
     cJSON_AddNumberToObject(result, "maxRating", maxRating);
     cJSON_AddStringToObject(result, "ratingColor", rating_color(rating));
 
+    /* 头衔 */
     const char *rank_str = "Unrated";
     cJSON *rankj = cJSON_GetObjectItem(user_info, "rank");
     if (rankj && rankj->valuestring) rank_str = rankj->valuestring;
@@ -344,9 +345,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
     if (maxRankj && maxRankj->valuestring) maxRankStr = maxRankj->valuestring;
     cJSON_AddStringToObject(result, "maxRank", maxRankStr);
 
-    /* ═══════════════════════════════════════════
-     * 第二部分：遍历每场比赛，生成详细记录
-     * ═══════════════════════════════════════════ */
+    /* ——— 第二部分：遍历 rating 历史，生成每场比赛记录 ——— */
 
     cJSON *contest_lookup = build_contest_lookup(contest_list);
     if (!contest_lookup) contest_lookup = cJSON_CreateObject();
@@ -360,6 +359,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
     cJSON_ArrayForEach(item, rating_history) {
         cJSON *contest_obj = cJSON_CreateObject();
 
+        /* 比赛 ID 和时间 */
         int contest_id = 0;
         long long update_time = 0;
         cJSON *cid = cJSON_GetObjectItem(item, "contestId");
@@ -375,7 +375,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
 
         cJSON_AddNumberToObject(contest_obj, "timestamp", (double)update_time);
 
-        /* 从查找表获取比赛起止时间 */
+        /* 从查找表获取比赛起止时间，用于赛时/补题判定 */
         char key[32];
         snprintf(key, sizeof(key), "%d", contest_id);
         cJSON *cl_entry = cJSON_GetObjectItem(contest_lookup, key);
@@ -391,7 +391,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
         cJSON_AddNumberToObject(contest_obj, "startTime",
             (double)(start_time ? start_time : update_time));
 
-        /* 赛前/赛后 rating */
+        /* 赛前/赛后 rating 变化 */
         cJSON *oldr = cJSON_GetObjectItem(item, "oldRating");
         cJSON *newr = cJSON_GetObjectItem(item, "newRating");
         int old_rating = oldr && cJSON_IsNumber(oldr) ? oldr->valueint : 0;
@@ -402,30 +402,31 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
         cJSON_AddStringToObject(contest_obj, "oldRatingColor", rating_color(old_rating));
         cJSON_AddStringToObject(contest_obj, "newRatingColor", rating_color(new_rating));
 
+        /* 比赛排名 */
         cJSON *rankj2 = cJSON_GetObjectItem(item, "rank");
         int rank_val = rankj2 && cJSON_IsNumber(rankj2) ? rankj2->valueint : 0;
         cJSON_AddNumberToObject(contest_obj, "rank", rank_val);
 
-        /* 近 180 天活跃度 */
+        /* 近 180 天活跃度统计 */
         if (now_ts - update_time <= halfyear_sec) {
             contest_count_180++;
             if (new_rating > max_rating_180) max_rating_180 = new_rating;
         }
 
-        /* 赛时/补题判定 */
+        /* 调用赛时/补题判定算法 */
         long long contest_end = start_time + duration;
         ProblemState probs[MAX_PROBLEMS] = {{0}};
         int prob_cnt = process_contest_problems(status, contest_id,
             contest_end, probs, MAX_PROBLEMS);
 
-        /* 构建题目状态数组 */
+        /* 将判定结果分类：赛时 AC（绿）、赛时失败（红）、赛后补题（黄） */
         int solved_count = 0;
         cJSON *problems_arr = cJSON_AddArrayToObject(contest_obj, "problems");
         cJSON *upsolved_arr = cJSON_AddArrayToObject(contest_obj, "upsolved");
 
         for (int i = 0; i < prob_cnt; i++) {
             if (probs[i].in_contest_ac) {
-                /* 赛时 AC → 绿色 */
+                /* 赛时 AC → 前端绿色块 */
                 solved_count++;
                 cJSON *prob = cJSON_CreateObject();
                 cJSON_AddStringToObject(prob, "index", probs[i].index);
@@ -434,7 +435,7 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
                 cJSON_AddStringToObject(prob, "verdict", "OK");
                 cJSON_AddItemToArray(problems_arr, prob);
             } else if (probs[i].rejected > 0) {
-                /* 有提交但未 AC → 红色 */
+                /* 有提交但全部失败 → 前端红色块 */
                 cJSON *prob = cJSON_CreateObject();
                 cJSON_AddStringToObject(prob, "index", probs[i].index);
                 cJSON_AddNumberToObject(prob, "rejectedAttempts", probs[i].rejected);
@@ -443,8 +444,8 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
                 cJSON_AddItemToArray(problems_arr, prob);
             }
 
-            /* 赛后补题 AC → 黄色 */
             if (probs[i].post_ac && !probs[i].in_contest_ac) {
+                /* 赛时没过但赛后补了 → 前端黄色块 */
                 cJSON *us = cJSON_CreateObject();
                 cJSON_AddStringToObject(us, "index", probs[i].index);
                 cJSON_AddNumberToObject(us, "problemRating", probs[i].problem_rating);
@@ -456,24 +457,23 @@ cJSON *build_user_summary(const char *handle, const char *data_dir,
         cJSON_AddItemToArray(contests_arr, contest_obj);
     }
 
-    /* ═══════════════════════════════════════════
-     * 第三部分：统计数据 + AC 难度直方图
-     * ═══════════════════════════════════════════ */
+    /* ——— 第三部分：统计摘要 + AC 难度分布直方图 ——— */
 
     cJSON_AddNumberToObject(result, "contestCount", contest_count);
     cJSON_AddNumberToObject(result, "contestCount180", contest_count_180);
     cJSON_AddNumberToObject(result, "maxRating180", max_rating_180);
 
+    /* 4 个时间窗口分别调用一次，生成独立直方图 */
     cJSON *hist_all = cJSON_AddObjectToObject(result, "histAll");
     cJSON *hist_year = cJSON_AddObjectToObject(result, "histYear");
     cJSON *hist_180 = cJSON_AddObjectToObject(result, "hist180");
     cJSON *hist_month = cJSON_AddObjectToObject(result, "histMonth");
 
     if (status) {
-        count_ac_by_rating(status, hist_all,   now_ts, 0);
-        count_ac_by_rating(status, hist_year,  now_ts, year_sec);
-        count_ac_by_rating(status, hist_180,   now_ts, halfyear_sec);
-        count_ac_by_rating(status, hist_month, now_ts, month_sec);
+        count_ac_by_rating(status, hist_all,   now_ts, 0);         /* 全部 */
+        count_ac_by_rating(status, hist_year,  now_ts, year_sec);  /* 近一年 */
+        count_ac_by_rating(status, hist_180,   now_ts, halfyear_sec); /* 近180天 */
+        count_ac_by_rating(status, hist_month, now_ts, month_sec); /* 近一月 */
     }
 
     /* 释放临时数据 */
