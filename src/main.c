@@ -2,7 +2,7 @@
  * main.c — 程序入口与流程编排
  *
  * 数据处理管线：
- *   sample_users.txt → CF API → data/*.json → analyzer → htmlgen → output/*.html
+ *   sample_users.txt → CF API → data/ 缓存 → analyzer → htmlgen → output/ 报告
  */
 
 #include <stdio.h>
