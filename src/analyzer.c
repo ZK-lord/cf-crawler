@@ -225,6 +225,7 @@ static void count_ac_by_rating(cJSON *status, cJSON *hist,
         cJSON *existing = cJSON_GetObjectItem(hist, key);
         if (existing) {
             existing->valueint++;
+            existing->valuedouble = existing->valueint;
         } else {
             cJSON_AddNumberToObject(hist, key, 1);
         }

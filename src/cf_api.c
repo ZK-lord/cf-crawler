@@ -151,11 +151,11 @@ int cf_fetch_user_rating(const char *handle, const char *path, RateLimiter *rl) 
     return fetch_and_save(url, path, rl);
 }
 
-/* 获取用户最近提交记录（限制200条以加快速度） */
+/* 获取用户全部提交记录 */
 int cf_fetch_user_status(const char *handle, const char *path, RateLimiter *rl) {
     char url[512];
     snprintf(url, sizeof(url),
-             "https://codeforces.com/api/user.status?handle=%s&from=1&count=200", handle);
+             "https://codeforces.com/api/user.status?handle=%s", handle);
     return fetch_and_save(url, path, rl);
 }
 
