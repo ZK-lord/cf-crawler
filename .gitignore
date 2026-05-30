@@ -17,3 +17,13 @@ __pycache__/
 .idea/
 *.swp
 *.swo
+
+# 日志
+debug.log
+
+# 提交材料（不传GitHub）
+提交材料/
+
+# 答辩讲稿（本地文件）
+答辩讲稿.md
+答辩讲稿.docx
