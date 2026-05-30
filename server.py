@@ -49,15 +49,18 @@ class AddUserHandler(SimpleHTTPRequestHandler):
             with open(SAMPLE_TXT, 'a', encoding='utf-8') as f:
                 f.write(handle + '\n')
 
-            # 后台运行 C 程序
+            # 后台运行 C 程序抓取数据
             def run_crawler():
                 env = os.environ.copy()
-                env['PATH'] = r'C:\msys64\ucrt64\bin;' + env.get('PATH', '')
-                subprocess.run([EXE], cwd=BASE, env=env, capture_output=True)
+                # 把 bin/ 加到 PATH，让 exe 能找到同目录的 dll
+                bin_dir = os.path.join(BASE, 'bin')
+                env['PATH'] = bin_dir + ';' + env.get('PATH', '')
+                subprocess.run([EXE, SAMPLE_TXT], cwd=BASE, env=env)
 
+            print(f'正在后台抓取 {handle} 的数据，请稍候...')
             thread = threading.Thread(target=run_crawler, daemon=True)
             thread.start()
-            thread.join(timeout=120)
+            thread.join(timeout=180)
 
             self.send_json(200, {'ok': True, 'message': f'{handle} 已添加并完成数据抓取'})
         else:
