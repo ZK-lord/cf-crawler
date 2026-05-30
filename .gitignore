@@ -2,9 +2,9 @@
 bin/*
 src/*.o
 
-# 缓存和生成文件
-data/
-output/
+# 缓存和生成文件（仅根目录，deploy/ 下的同名目录需要提交）
+/data/
+/output/
 tmp/
 
 # Python
@@ -15,6 +15,8 @@ __pycache__/
 
 # IDE
 .idea/
+.vscode/
+.claude/
 *.swp
 *.swo
 
